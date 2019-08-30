@@ -1,0 +1,38 @@
+{
+  "name": "test-flows",
+  "version": "0.0.1",
+  "description": "A colletion of components to be used as a chain of actions - request (RequestResult), get-data-from-promise (PromiseResult), delay (DelayAction) etc.",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node node_modules/jest/bin/jest.js",
+    "test-debug": "node --inspect node_modules/.bin/jest --watch --runInBand"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexyk/test-flows.git"
+  },
+  "keywords": [
+    "test",
+    "tests",
+    "flow",
+    "flows",
+    "chain",
+    "chains",
+    "chain-of-events",
+    "chain-of-actions",
+    "chain-of-commands",
+    "sequence",
+    "sequence-of-events",
+    "sequence-of-commands",
+    "sequence-of-actions"
+  ],
+  "author": "Alex K",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/alexyk/test-flows/issues"
+  },
+  "homepage": "https://github.com/alexyk/test-flows#readme",
+  "dependencies": {
+    "redux-actions": "^2.6.5"
+  }
+}
