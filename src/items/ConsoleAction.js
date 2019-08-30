@@ -22,23 +22,23 @@ class ConsoleAction extends AbstractFlowItem {
         break;
 
       case 'log':
-        console.log.apply(console, payload);
+        console.log(payload);
         break;
 
       case 'info':
-        console.info.apply(console, payload);
+        console.info(payload);
         break;
 
       case 'warn':
-        console.warn.apply(console, payload);
+        console.warn(payload);
         break;
     
       case 'time-start':
-        console.time(...payload);
+        console.time(payload);
         break;
     
       case 'time-end':
-        console.timeEnd(...payload);
+        console.timeEnd(payload);
         break;
     
       default:

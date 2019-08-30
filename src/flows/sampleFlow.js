@@ -54,6 +54,7 @@ let flowFactory = function () {
       new ReduxPrintState       ('redux state - after'    , flow, getParams('redux1')),
 
       // navigating to a screen - sending params
+      new ConsoleAction         ('pint nav params'        , flow, [], 'log', getParams('nav-params')),
       new NavigationAction      ('navigate'               , flow, [], getParams('nav-screen'), getParams('nav-params')),
       new PrintCache            ('print cache'            , flow),
 
