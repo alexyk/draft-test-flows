@@ -1,3 +1,4 @@
+import FetchRequest from "./FetchRequest";
 import NavigationAction from "./NavigationAction";
 import PromiseResult from "./PromiseResult";
 import RequestResult from "./RequestResult";
@@ -9,6 +10,7 @@ import ReduxDispatchAction from "./ReduxDispatchAction";
 import ConsoleAction from "./ConsoleAction";
 
 export default {
+  FetchRequest,
   NavigationAction,
   PromiseResult,
   RequestResult,

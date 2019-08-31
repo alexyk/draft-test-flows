@@ -46,7 +46,7 @@ let flowFactory = function () {
       new ConsoleAction         ('start time calculation' , flow, [], 'time-start', 'guest-flow-duration'),
 
       new ReduxPrintState       ('redux initial state'    , flow, []),
-      new DelayAction           ('delay'                  , flow, [], 2),
+      new DelayAction           ('delay'                  , flow, [], 0.7),
 
       // execute redux action from config (see config.js -> setConfig)
       new ReduxPrintState       ('redux state - before'   , flow, getParams('redux1')),    

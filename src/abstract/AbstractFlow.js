@@ -35,6 +35,7 @@ function AbstractFlow(title) {
 
   flowObject.write = function(propName, value) {
     flowObject.cache[propName] = value;
+    return flowObject;
   }
 
   flowObject.exec = () => {
