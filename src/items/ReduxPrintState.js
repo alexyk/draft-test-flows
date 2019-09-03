@@ -23,8 +23,8 @@ class ReduxPrintState extends AbstractFlowItem {
   }
 }
 
-function getDataByPath(root, path) {
-  let result = root;
+function getDataByPath(rootObject, path) {
+  let result = rootObject;
   path
     .split(".")
     .forEach(item => (result = result[item]));

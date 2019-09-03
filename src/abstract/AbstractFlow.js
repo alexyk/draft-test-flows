@@ -1,6 +1,7 @@
 import moment from "moment";
 import config from "../config";
 import ConsoleAction from "../items/ConsoleAction";
+import { getObjectFromPath, getObjectClassName } from "../tools";
 
 
 /**
@@ -30,7 +31,7 @@ function AbstractFlow(title) {
   }
   
   flowObject.read = function(propName) {
-    return flowObject.cache[propName];
+    return getObjectFromPath(flowObject.cache, propName);
   }
 
   flowObject.write = function(propName, value) {
@@ -94,7 +95,7 @@ function* createGenerator(flowObject) {
   while (index < len) {
     flowObject._index = index;
     const flowItem = chain[index];
-    const type = config.getObjectClassName(flowItem);
+    const type = getObjectClassName(flowItem);
     let { title, extraTitle } = flowItem;
     if (extraTitle == null) {
       extraTitle = '';

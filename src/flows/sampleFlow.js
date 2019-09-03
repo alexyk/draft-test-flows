@@ -33,7 +33,7 @@ import ConsoleAction from "../items/ConsoleAction";
  *      
  */
 
-let flowFactory = function () {
+let sampleFlow = function () {
   let flow = AbstractFlow('sample-flow');
   console.log('get params', config)
   let getParams = config.getParams(flow);
@@ -46,22 +46,24 @@ let flowFactory = function () {
       new ConsoleAction         ('start time calculation' , flow, [], 'time-start', 'guest-flow-duration'),
 
       new ReduxPrintState       ('redux initial state'    , flow, []),
-      new DelayAction           ('delay'                  , flow, [], 0.7),
 
       // execute redux action from config (see config.js -> setConfig)
-      new ReduxPrintState       ('redux state - before'   , flow, getParams('redux1')),    
+      new ReduxPrintState       ('redux state - before exec'   , flow, getParams('redux1')),    
       new ExecuteFunction       ('set redux data (with an action set with setConfig)'    , flow, [], config.reduxAction, getParams('redux-exec-payload'), null),
-      new ReduxPrintState       ('redux state - after'    , flow, getParams('redux1')),
+      new ReduxPrintState       ('redux state - after exec'    , flow, getParams('redux1')),
+
+      // executing a redux action directly with store.dispatch
+      new ReduxPrintState       ('redux state - before action'   , flow, getParams('redux2')),
+      new ReduxDispatchAction   ('dispatch a redux action', flow, [], getParams('redux-action-type'), getParams('redux-action-payload')),
+      new ReduxPrintState       ('redux state - after after'    , flow, getParams('redux2')),
+      
+      new DelayAction           ('delay'                  , flow, [], 0.7),
 
       // navigating to a screen - sending params
       new ConsoleAction         ('pint nav params'        , flow, [], 'log', getParams('nav-params')),
       new NavigationAction      ('navigate'               , flow, [], getParams('nav-screen'), getParams('nav-params')),
       new PrintCache            ('print cache'            , flow),
 
-      // executing a redux action directly with store.dispatch
-      new ReduxPrintState       ('redux state - before'   , flow, getParams('redux2')),
-      new ReduxDispatchAction   ('dispatch a redux action', flow, [], getParams('redux-action-type'), getParams('redux-action-payload')),
-      new ReduxPrintState       ('redux state - after'    , flow, getParams('redux2')),
 
       new ConsoleAction         ('end time calculation'   , flow, [], 'time-end', 'guest-flow-duration'),
   ];
@@ -70,4 +72,4 @@ let flowFactory = function () {
 }
 
 
-export default flowFactory;
+export default sampleFlow;

@@ -12,7 +12,11 @@ class NavigationAction extends AbstractFlowItem {
   }
 
   exec() {
-    const { routeName, params, flowObject } = this;
+    let { routeName, params, flowObject } = this;
+
+    if (typeof(params) == "function") {
+      params = params();
+    }
     
     config.navigationService.navigate(routeName, params);
     flowObject.next();

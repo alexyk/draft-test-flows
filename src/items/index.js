@@ -1,4 +1,5 @@
 import FetchRequest from "./FetchRequest";
+import AxiosRequest from "./AxiosRequest";
 import NavigationAction from "./NavigationAction";
 import PromiseResult from "./PromiseResult";
 import RequestResult from "./RequestResult";
@@ -11,6 +12,7 @@ import ConsoleAction from "./ConsoleAction";
 
 export default {
   FetchRequest,
+  AxiosRequest,
   NavigationAction,
   PromiseResult,
   RequestResult,

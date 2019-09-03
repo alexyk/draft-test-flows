@@ -9,9 +9,13 @@ export function logGreen(thisObject, data, extraTitle='', description='') {
     "color: grey;   font-weight: normal");
   console.log(data);
 }
-export function logWarn(thisObject, data, extraTitle='') {
-  const details = getCallerDetails(thisObject, logGreen);
-  console.warn(`%c[${details}] %c ${extraTitle}`, data);
+export function logWarn(thisObject, data, extraTitle='', description='') {
+  const details = getCallerDetails(thisObject, logWarn);
+  console.log(`%c[${details}] %c ${extraTitle} %c${description}`, 
+    "color: red;  font-weight: bold",
+    "color: orange; font-weight: bold",
+    "color: grey;   font-weight: normal");
+  console.log(data);
 }
 
 
@@ -51,10 +55,10 @@ export function getObjectKeysCount(obj) {
 }
 
 /**
- * Compares expected value to given path (like "root.prop1.anotherProp").
+ * Compares expected value to given path (like "rootObject.prop1.anotherProp").
  * Makes sure nothing on the way is undefined
- * @param {Object} rootObject The rootObject in the path (Example: if path = "root.prop1.anotherProp" then "root" is the rootObject)
- * @param {String} path A path to the prop in the form "root.prop1.anotherProp"
+ * @param {Object} rootObject The rootObject in the path (Example: if path = "rootObject.prop1.anotherProp" then "rootObject" is the rootObject)
+ * @param {String} path A path to the prop in the form "rootObject.prop1.anotherProp"
  * @param {any} expectedValue What the path is expected to evaluate to
  */
 export function getConditionsByPath(rootObject, path, expectedValue) {
@@ -85,6 +89,11 @@ export function getConditionsByPath(rootObject, path, expectedValue) {
 export function getObjectClassName(obj) {
   let result = null;
 
+  if (obj['global']) {
+    return 'global';
+  }
+
+
   try {
     if (isMoment(obj)) {
       result = "moment";
@@ -107,5 +116,19 @@ export function getObjectClassName(obj) {
       { error, obj }
     );
   }
+  return result;
+}
+
+export function getObjectFromPath(rootObject, propPath) {
+  const asArray = propPath.split('.');
+  let result = rootObject || {};
+  for (let prop of asArray) {
+    if (result) {
+      result = result[prop];
+    } else {
+      break;
+    }
+  }
+
   return result;
 }
