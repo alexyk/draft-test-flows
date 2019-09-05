@@ -27,7 +27,9 @@ class FetchRequest extends AbstractFlowItem {
   
   parseResponse(textData) {
     logGreen(this, {textData});
-    return new Promise (() => textData);
+    const jsonData = JSON.parse(textData);
+
+    return Promise.resolve({jsonData,textData});
   }
 
   checkForRecaptcha(textData, response, error) {
@@ -56,7 +58,7 @@ class FetchRequest extends AbstractFlowItem {
     this.flowObject.next();
   }
 
-  onSuccess(jsonData) {
+  onSuccess({jsonData, textData}) {
     logGreen(this, {jsonData});
     this.flowObject.next();
   }

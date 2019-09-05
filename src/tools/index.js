@@ -7,7 +7,7 @@ export function logGreen(thisObject, data, extraTitle='', description='') {
     "color: green;  font-weight: bold",
     "color: orange; font-weight: bold",
     "color: grey;   font-weight: normal");
-  console.log(data);
+  if (data) console.log(data);
 }
 export function logWarn(thisObject, data, extraTitle='', description='') {
   const details = getCallerDetails(thisObject, logWarn);
@@ -15,7 +15,7 @@ export function logWarn(thisObject, data, extraTitle='', description='') {
     "color: red;  font-weight: bold",
     "color: orange; font-weight: bold",
     "color: grey;   font-weight: normal");
-  console.log(data);
+  if (data) console.log(data);
 }
 
 

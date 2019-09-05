@@ -34,7 +34,7 @@ import ConsoleAction from "../items/ConsoleAction";
  */
 
 let sampleFlow = function () {
-  let flow = AbstractFlow('sample-flow');
+  let flow = AbstractFlow('Sample Flow - with exec, redux and navigation flow items');
   console.log('get params', config)
   let getParams = config.getParams(flow);
 
