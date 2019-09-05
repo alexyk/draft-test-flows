@@ -1,5 +1,5 @@
 import AbstractFlowItem from "../abstract/AbstractFlowItem";
-import { logGreen, getConditionsByPath } from "../tools";
+import { logGreen, getConditionsByPath } from "js-tools";
 
 
 class FetchRequest extends AbstractFlowItem {

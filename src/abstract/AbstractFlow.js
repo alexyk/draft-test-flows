@@ -1,7 +1,7 @@
 import moment from "moment";
 import config from "../config";
 import ConsoleAction from "../items/ConsoleAction";
-import { getObjectFromPath, getObjectClassName } from "../tools";
+import { getObjectFromPath, getObjectClassName } from "js-tools";
 
 
 /**

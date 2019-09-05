@@ -1,6 +1,6 @@
 import Axios from "axios";
 import AbstractFlowItem from "../abstract/AbstractFlowItem";
-import { logGreen, logWarn } from "../tools";
+import { logGreen, logWarn } from "js-tools";
 
 
 class AxiosRequest extends AbstractFlowItem {
