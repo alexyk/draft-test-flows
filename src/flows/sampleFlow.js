@@ -8,6 +8,7 @@ import ExecuteFunction from "../items/ExecuteFunction";
 import ReduxPrintState from "../items/ReduxPrintState";
 import ReduxDispatchAction from "../items/ReduxDispatchAction";
 import ConsoleAction from "../items/ConsoleAction";
+import { isArray } from "js-tools";
 
 /**
  * Needed configs:
@@ -33,7 +34,7 @@ import ConsoleAction from "../items/ConsoleAction";
  *      
  */
 
-let sampleFlow = function () {
+let sampleFlow = function (selectedIndexes) {
   let flow = AbstractFlow('Sample Flow - with exec, redux and navigation flow items');
   console.log('get params', config)
   let getParams = config.getParams(flow);
@@ -48,14 +49,14 @@ let sampleFlow = function () {
       new ReduxPrintState       ('redux initial state'    , flow, []),
 
       // execute redux action from config (see config.js -> setConfig)
-      new ReduxPrintState       ('redux state - before exec'   , flow, getParams('redux1')),    
-      new ExecuteFunction       ('set redux data (with an action set with setConfig)'    , flow, [], config.reduxAction, getParams('redux-exec-payload'), null),
-      new ReduxPrintState       ('redux state - after exec'    , flow, getParams('redux1')),
+      new ReduxPrintState       ('redux state - before exec'                            , flow, getParams('redux1')),    
+      new ExecuteFunction       ('set redux data (with an action set with setConfig)'   , flow, [], config.reduxAction, getParams('redux-exec-payload'), null),
+      new ReduxPrintState       ('redux state - after exec'                             , flow, getParams('redux1')),
 
       // executing a redux action directly with store.dispatch
-      new ReduxPrintState       ('redux state - before action'   , flow, getParams('redux2')),
-      new ReduxDispatchAction   ('dispatch a redux action', flow, [], getParams('redux-action-type'), getParams('redux-action-payload')),
-      new ReduxPrintState       ('redux state - after after'    , flow, getParams('redux2')),
+      new ReduxPrintState       ('redux state - before action'    , flow, getParams('redux2')),
+      new ReduxDispatchAction   ('dispatch a redux action'        , flow, [], getParams('redux-action-type'), getParams('redux-action-payload')),
+      new ReduxPrintState       ('redux state - after after'      , flow, getParams('redux2')),
       
       new DelayAction           ('delay'                  , flow, [], 0.7),
 
@@ -67,6 +68,24 @@ let sampleFlow = function () {
 
       new ConsoleAction         ('end time calculation'   , flow, [], 'time-end', 'guest-flow-duration'),
   ];
+
+  if (isArray(selectedIndexes)) {
+    const origFunc = flow.createChain;
+    flow.createChain = () => {
+      let chain = origFunc();
+      let newChain = [];
+      while (selectedIndexes.length > 0) {
+        let i1 = selectedIndexes.shift();
+        let i2 = selectedIndexes.shift();
+        if (i2 != null) {
+          newChain = newChain.concat(chain.slice(i1, i2));
+        } else {
+          newChain = newChain.concat(chain.slice(i1));
+        }
+      }
+      return newChain;
+    }
+  }
 
   return flow;
 }

@@ -22,7 +22,7 @@ class AxiosRequest extends AbstractFlowItem {
   }
 
   onError(data) {
-    logWarn(this, data)
+    logError(this, data)
 
     this.flowObject.write(this.cacheParamNames[1], data)
     this.flowObject.next();

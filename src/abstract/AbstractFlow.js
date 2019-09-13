@@ -1,7 +1,7 @@
 import moment from "moment";
 import config from "../config";
 import ConsoleAction from "../items/ConsoleAction";
-import { getObjectFromPath, getObjectClassName } from "js-tools";
+import { getObjectFromPath, getObjectClassName, logError } from "js-tools";
 
 
 /**
@@ -20,11 +20,14 @@ import { getObjectFromPath, getObjectClassName } from "js-tools";
  */
 
 function AbstractFlow(title) {
-  let retries = 0;
   let flowObject = {
     chain: [],
     cache: {}
   };
+
+  flowObject.getCurrentItem = function() {
+    return flowObject.chain[flowObject._index];
+  }
 
   flowObject.readAll = function() {
     return flowObject.cache;
@@ -42,6 +45,7 @@ function AbstractFlow(title) {
   flowObject.exec = () => {
     let chain = flowObject.createChain();
     flowObject.chain = chain;
+    flowObject._index = 0;
     flowObject._generator = createGenerator(flowObject);
 
     // private case
@@ -50,7 +54,6 @@ function AbstractFlow(title) {
     if (itemOne instanceof ConsoleAction && itemOne.type == 'clear') {
       console.clear();
     }
-
 
     // give console.clear a bit of time
     setTimeout( () => {
@@ -67,13 +70,13 @@ function AbstractFlow(title) {
 
   flowObject.next = () => {
     setTimeout(() => {
+      let flowItem = flowObject.getCurrentItem();
+      let result;
       try {
-        flowObject._generator.next();
-        retries = 0;
+        result = flowObject._generator.next();
       } catch (error) {
-        retries++;
-        console.warn(`[AbstractFlow] Error: ${error.message}. Retrying ... (${retries})`)
-        setTimeout(() => flowObject.next(), 50);
+        const details = getObjectClassName(flowItem);
+        logError(`AbstractFlow::next()`, null, error, `While executing Flow item ${details}`);
       }},
       50
     );
@@ -100,19 +103,13 @@ function* createGenerator(flowObject) {
     if (extraTitle == null) {
       extraTitle = '';
     }
-    console.log(`%c${getTime()}%c[Running] %cFlow Item ${index+1}/${len}                        ${title}${extraTitle} (${type})`, 'color: gray', 'color: green; font-weight: bold', 'font-weight: normal');
+    console.log(`%c${getTime()}%c[Running] %cFlow-Item ${index+1}/${len}       ${title}${extraTitle} (${type})`, 'color: gray', 'color: green; font-weight: bold', 'font-weight: normal');
 
     try {
       yield flowItem.exec();
     } catch (error) {
-      console.warn(
-        `%c${getTime()} %c[Error] [${type}] [Item ${index+1}] `+
-        `%cWhile executing '${title}${extraTitle}' - %c ${error.message}`,
-        "color: gray",
-        "color: normal; font-weight: bold",
-        "font-weight: normal",
-        "font-weight: bold"
-      );
+      const itemName = getObjectClassName(flowItem);
+      logError(`${itemName}::exec()`, null, error);
     }
     index++;
   }
@@ -125,7 +122,7 @@ function* createGenerator(flowObject) {
 }
 
 function getTime() {
-  const timeStr = `${moment().format("HH:mm:ss.SSS")} `;
+  const timeStr = `[${moment().format("HH:mm:ss.SSS")}] `;
   return timeStr;
 }
 
