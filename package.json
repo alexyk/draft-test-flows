@@ -5,7 +5,8 @@
   "main": "src/index.js",
   "scripts": {
     "test": "node node_modules/jest/bin/jest.js",
-    "test-debug": "node --inspect node_modules/.bin/jest --watch --runInBand"
+    "test-debug": "node --inspect node_modules/.bin/jest --watch --runInBand",
+    "ts-test": "tsc --project typing-tests"    
   },
   "repository": {
     "type": "git",

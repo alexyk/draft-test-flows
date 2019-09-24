@@ -1,7 +1,7 @@
 import moment from "moment";
 import config from "../config";
 import ConsoleAction from "../items/ConsoleAction";
-import { getObjectFromPath, getObjectClassName, logError } from "js-tools";
+import { getObjectFromPath, getObjectClassName, logError, config as jsToolsConfig } from "js-tools";
 
 
 /**
@@ -57,7 +57,11 @@ function AbstractFlow(title) {
 
     // give console.clear a bit of time
     setTimeout( () => {
-      console.log(`%c${getTime()}%c[Starting] %c -------------------- Flow Starting ---------------------`, 'color: gray', 'color: yellow; font-weight: bold', 'font-weight: normal');
+      if (jsToolsConfig.noColor) {
+          console.log(`${getTime()} [Starting] -------------------- Flow Starting ---------------------`);
+      } else {
+        console.log(`%c${getTime()}%c[Starting] %c -------------------- Flow Starting ---------------------`, 'color: gray', 'color: yellow; font-weight: bold', 'font-weight: normal');
+      }
       console.log(` `)
       console.log(`                                   Test Flow "${title}"`);
       console.log(` `)
@@ -103,7 +107,11 @@ function* createGenerator(flowObject) {
     if (extraTitle == null) {
       extraTitle = '';
     }
-    console.log(`%c${getTime()}%c[Running] %cFlow-Item ${index+1}/${len}       ${title}${extraTitle} (${type})`, 'color: gray', 'color: green; font-weight: bold', 'font-weight: normal');
+    if (jsToolsConfig.noColor) {
+      console.log(`${getTime()}[Running] Flow-Item ${index+1}/${len}       ${title}${extraTitle} (${type})`);
+    } else {
+      console.log(`%c${getTime()}%c[Running] %cFlow-Item ${index+1}/${len}       ${title}${extraTitle} (${type})`, 'color: gray', 'color: green; font-weight: bold', 'font-weight: normal');
+    }
 
     try {
       yield flowItem.exec();
@@ -116,7 +124,11 @@ function* createGenerator(flowObject) {
 
   console.log(' ')
   console.log(' ')
-  console.log(`%c${getTime()}%c[Ending] %c -------------------- Flow Finished ---------------------`, 'color: gray', 'color: orange; font-weight: bold', 'font-weight: normal');
+  if (jsToolsConfig.noColor) {
+    console.log(`${getTime()}[Ending]  -------------------- Flow Finished ---------------------`);
+  } else {
+    console.log(`%c${getTime()}%c[Ending] %c -------------------- Flow Finished ---------------------`, 'color: gray', 'color: orange; font-weight: bold', 'font-weight: normal');
+  }
   console.log(' ')
 
 }

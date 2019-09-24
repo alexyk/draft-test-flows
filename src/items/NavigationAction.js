@@ -17,9 +17,11 @@ class NavigationAction extends AbstractFlowItem {
     if (typeof(params) == "function") {
       params = params();
     }
-    
+
     config.navigationService.navigate(routeName, params);
     flowObject.next();
+    
+    return this;
   }
 }
 

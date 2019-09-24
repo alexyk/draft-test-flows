@@ -1,23 +1,26 @@
 import AbstractFlowItem from "../abstract/AbstractFlowItem";
-import { logGreen, getConditionsByPath } from "js-tools";
+import { logGreen, logWarn, getConditionsByPath, config as jsToolsConfig, isFunction, logError } from "js-tools";
 
 
 class FetchRequest extends AbstractFlowItem {
-  constructor(title, flowObject, cacheParamNames, url, dataConfig) {
+  constructor(title, flowObject, cacheParamNames, url, dataConfig, id, customOnSuccess=null, customOnError=null, customParse=null, customRecaptcha=null) {
     super(title, flowObject, cacheParamNames);
 
+    this.id = id;
     this.url = url;
     this.dataConfig = dataConfig;
 
     this.checkStatus = this.checkStatus.bind(this);
-    this.parseResponse = this.parseResponse.bind(this);
-    this.checkForRecaptcha = this.checkForRecaptcha.bind(this);
-    this.onSuccess = this.onSuccess.bind(this);
-    this.onError = this.onError.bind(this);
+    this.parseResponse = ( customParse != null ? customParse.bind(this) : this.parseResponse.bind(this));
+    this.checkForRecaptcha = (customRecaptcha != null ? customRecaptcha.bind(this) : this.checkForRecaptcha.bind(this));
+    this.onSuccess = (customOnSuccess != null ? customOnSuccess.bind(this) : this.onSuccess.bind(this));
+    this.onError = (customOnError != null ? customOnError.bind(this) : this.onError.bind(this));
   }
 
   checkStatus(response) {
-    logGreen(this, {response});
+    if (!jsToolsConfig.noObjects) {
+      logGreen(this, {response});
+    }
     if (response.ok) {
       return response.text();
     } else {
@@ -26,7 +29,9 @@ class FetchRequest extends AbstractFlowItem {
   }
   
   parseResponse(textData) {
-    logGreen(this, {textData});
+    if (!jsToolsConfig.noObjects) {
+      logGreen(this, {textData});
+    }
     const jsonData = JSON.parse(textData);
 
     return Promise.resolve({jsonData,textData});
@@ -44,7 +49,7 @@ class FetchRequest extends AbstractFlowItem {
       {
         isRecaptcha,
         textDataTruncated: textData ? textData.substr(0, 100) : "n/a",
-        response
+        response: (jsToolsConfig.noObjects ? null : response)
       },
       "started: ", "Checking if the response is a case of a recaptcha triggered"
     );
@@ -53,19 +58,27 @@ class FetchRequest extends AbstractFlowItem {
       logGreen(this, '', 'ended:', 'Yes - recaptcha recognized');
       this.flowObject.write({goto: this.url});
     } else {
-      logWarn(this, {isRecaptcha, recaptchaConditions}, 'ended: Response seems to be different from a recaptcha case');
+      //logWarn(this, {isRecaptcha, recaptchaConditions}, 'ended: Response seems to be different from a recaptcha case');
     }
     this.flowObject.next();
   }
 
   onSuccess({jsonData, textData}) {
-    logGreen(this, {jsonData});
+    if (!jsToolsConfig.noObjects) {
+      logGreen(this, {jsonData});
+    }
     this.flowObject.next();
   }
 
   onError(errorData) {
-    logGreen(this, {errorData});
     const { error, response } = errorData;
+
+    if (!response) {
+      if (!jsToolsConfig.noObjects) {
+        logGreen(this, {errorData});
+      }
+      return;
+    }
 
     response
       .text()
@@ -75,7 +88,14 @@ class FetchRequest extends AbstractFlowItem {
   }
 
   exec() {
-    const { url, dataConfig, checkStatus, parseResponse, onSuccess, onError } = this;
+    let { url, dataConfig, checkStatus, parseResponse, onSuccess, onError } = this;
+
+    if (isFunction(url)) {
+      url = url();
+    }
+    if (isFunction(dataConfig)) {
+      dataConfig = dataConfig();
+    }
 
     logGreen(this, {dataConfig}, 'Loading', `${url}`);
     

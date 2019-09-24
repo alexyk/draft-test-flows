@@ -20,6 +20,8 @@ class ReduxPrintState extends AbstractFlowItem {
 
     console.log(`[ReduxPrintState] Current redux state`, data);
     flowObject.next();
+    
+    return this;
   }
 }
 
