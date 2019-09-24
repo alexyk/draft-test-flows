@@ -117,7 +117,11 @@ function* createGenerator(flowObject) {
       yield flowItem.exec();
     } catch (error) {
       const itemName = getObjectClassName(flowItem);
-      logError(`${itemName}::exec()`, null, error);
+      if (jsToolsConfig.noObjects) {
+        logError(null, null, error.toString(), `(${itemName}::exec())`);
+      } else {
+        logError(`${itemName}::exec()`, null, error);
+      }
     }
     index++;
   }

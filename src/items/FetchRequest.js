@@ -13,8 +13,10 @@ class FetchRequest extends AbstractFlowItem {
     this.checkStatus = this.checkStatus.bind(this);
     this.parseResponse = ( customParse != null ? customParse.bind(this) : this.parseResponse.bind(this));
     this.checkForRecaptcha = (customRecaptcha != null ? customRecaptcha.bind(this) : this.checkForRecaptcha.bind(this));
-    this.onSuccess = (customOnSuccess != null ? customOnSuccess.bind(this) : this.onSuccess.bind(this));
-    this.onError = (customOnError != null ? customOnError.bind(this) : this.onError.bind(this));
+    this.customOnError = (customOnError ? customOnError.bind(this) : null);
+    this.customOnSuccess = (customOnSuccess ? customOnSuccess.bind(this) : null);
+    this.onSuccess = this.onSuccess.bind(this);
+    this.onError = this.onError.bind(this);
   }
 
   checkStatus(response) {
@@ -22,69 +24,122 @@ class FetchRequest extends AbstractFlowItem {
       logGreen(this, {response});
     }
     if (response.ok) {
+      if (jsToolsConfig.noObjects) {
+        logGreen(null, null, `checkStatus:`.padEnd(20, ' ') + 'response ok' );
+      }
       return response.text();
     } else {
-      return Promise.reject({error: new Error('Response not ok'), response});
+      if (jsToolsConfig.noObjects) {
+        const { statusText, status } = response;
+        const statusString = `${status} ${statusText}`;
+        logGreen(null, null, `checkStatus:`.padEnd(20, ' ') + statusString );
+      }
+      const error = new Error('Response not ok');
+      let result;
+
+      try {
+        result = response.text().then(textData => this.checkForRecaptcha(textData, response, error));
+      } catch (error2) {
+        result = Promise.reject({error,error2,response})
+      }
+      return result;
     }
   }
   
-  parseResponse(textData) {
-    if (!jsToolsConfig.noObjects) {
+  parseResponse(data) {
+    const {textData, isRecaptcha, error, error2} = data;
+
+    if (jsToolsConfig.noObjects) {
+      logGreen(null, null, `parseResponse:`.padEnd(20, ' ') + `(${textData ? textData.length : textData} characters long) ` + (error?'Has errors: '+(error || '' + error2 || ''):''));
+    } else {
       logGreen(this, {textData});
     }
-    const jsonData = JSON.parse(textData);
+
+    if (error && !isRecaptcha) {
+      return Promise.reject(data);
+    } else if (isRecaptcha) {
+      return Promise.resolve(data);
+    }
+
+    let jsonData;
+    try {
+      jsonData = JSON.parse(textData);
+    } catch (jsonError) {
+      return Promise.reject({textData, jsonError});
+    }
 
     return Promise.resolve({jsonData,textData});
   }
 
   checkForRecaptcha(textData, response, error) {
-    const { conditions: recaptchaConditions, comparisonResult } = getConditionsByPath(response, "response._bodyInit._data.type", "text/html");
-    const isRecaptcha = ( 
-      comparisonResult == true
-        && textData != null
-        && textData.includes("Please complete the security check to access")
-    );
-    
-    logGreen(this,
-      {
-        isRecaptcha,
-        textDataTruncated: textData ? textData.substr(0, 100) : "n/a",
-        response: (jsToolsConfig.noObjects ? null : response)
-      },
-      "started: ", "Checking if the response is a case of a recaptcha triggered"
-    );
+    const isRecaptcha = (textData != null && textData.includes("g-recaptcha"));
+
+    if (!jsToolsConfig.noObjects) {
+      logGreen(this,
+        {
+          isRecaptcha,
+          textDataTruncated: textData ? textData.substr(0, 100) : "n/a",
+          response: (jsToolsConfig.noObjects ? null : response)
+        },
+        "started: ", "Checking if the response is a case of a recaptcha triggered"
+      );
+    }
+
+    let result;
 
     if (isRecaptcha) {
-      logGreen(this, '', 'ended:', 'Yes - recaptcha recognized');
       this.flowObject.write({goto: this.url});
+      result = {jsonData: null, textData, error, isRecaptcha};
     } else {
-      //logWarn(this, {isRecaptcha, recaptchaConditions}, 'ended: Response seems to be different from a recaptcha case');
+      // logWarn(this, {isRecaptcha, recaptchaConditions}, 'ended: Response seems to be different from a recaptcha case');
+      result = {error2: new Error('Response not ok - not recaptcha'), response, error, textData};
     }
-    this.flowObject.next();
+
+    if (jsToolsConfig.noObjects) {
+      logGreen(null, null, `checkForRecaptcha:`.padEnd(20, ' ') +  `${isRecaptcha ? 'is recaptcha' : 'not recaptcha'}` );
+    }
+
+    return result;
   }
 
-  onSuccess({jsonData, textData}) {
+  onSuccess(data) {
+    const { jsonData } = data || {};
+
     if (!jsToolsConfig.noObjects) {
       logGreen(this, {jsonData});
     }
-    this.flowObject.next();
+
+    let skipNext = false;
+    if (this.customOnSuccess) {
+      skipNext = this.customOnSuccess(data || {});
+    }
+
+    if (!skipNext) {
+      this.flowObject.next();
+    }
   }
 
   onError(errorData) {
-    const { error, response } = errorData;
+    const { response } = errorData;
 
     if (!response) {
       if (!jsToolsConfig.noObjects) {
         logGreen(this, {errorData});
       }
+      if (this.customOnError) {
+        this.customOnError(errorData);
+      }
+  
       return;
     }
 
-    response
-      .text()
-      .then(textData => this.checkForRecaptcha(textData, response, error));
-
-    this.flowObject.next();
+    let skipNext = false;
+    if (this.customOnError) {
+      skipNext = this.customOnError(errorData);
+    }
+    if (!skipNext) {
+      this.flowObject.next();
+    }
   }
 
   exec() {
@@ -97,7 +152,11 @@ class FetchRequest extends AbstractFlowItem {
       dataConfig = dataConfig();
     }
 
-    logGreen(this, {dataConfig}, 'Loading', `${url}`);
+    if (jsToolsConfig.noObjects) {
+      logGreen(null, null, 'Request URL'.padEnd(19, ' '), `${url}`);
+    } else {
+      logGreen(this, {dataConfig}, 'Request', `${url}`);
+    }
     
     fetch(url, dataConfig)
       .then(checkStatus)
