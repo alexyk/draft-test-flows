@@ -1,7 +1,7 @@
 import moment from "moment";
 import config from "../config";
 import ConsoleAction from "../items/ConsoleAction";
-import { getObjectFromPath, getObjectClassName, logError, config as jsToolsConfig } from "js-tools";
+import { getObjectFromPath, getObjectClassName, logError, config as jsToolsConfig, isFunction } from "js-tools";
 
 
 /**
@@ -86,6 +86,10 @@ function AbstractFlow(title) {
     );
   }
 
+  flowObject.abort = () => {
+    flowObject._abort = true;
+  }
+
   flowObject.createChain = () => {
     throw new Error(`[AbstractFlow] createChain() needs to be defined in subclasses`)
   };
@@ -104,6 +108,17 @@ function* createGenerator(flowObject) {
     const flowItem = chain[index];
     const type = getObjectClassName(flowItem);
     let { title, extraTitle } = flowItem;
+    if (isFunction(title)) {
+      title = title();
+    }
+    if (flowObject._abort) {
+      title = chain[index > 0 ? index-1 : 0].title;
+      if (isFunction(title)) {
+        title = title();
+      }
+      console.log(`${getTime()}[Aborting]  Flow aborted by '${title}'`);
+      break;
+    }
     if (extraTitle == null) {
       extraTitle = '';
     }

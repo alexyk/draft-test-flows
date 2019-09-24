@@ -1,5 +1,5 @@
 import AbstractFlowItem from "../abstract/AbstractFlowItem";
-import { logGreen, logWarn, getConditionsByPath, config as jsToolsConfig, isFunction, logError } from "js-tools";
+import { logGreen, logWarn, getConditionsByPath, config as jsToolsConfig, isFunction, logError, isObject } from "js-tools";
 
 
 class FetchRequest extends AbstractFlowItem {
@@ -25,14 +25,14 @@ class FetchRequest extends AbstractFlowItem {
     }
     if (response.ok) {
       if (jsToolsConfig.noObjects) {
-        logGreen(null, null, `checkStatus:`.padEnd(20, ' ') + 'response ok' );
+        logGreen(null, null, `checkStatus`.padEnd(20, ' ') + 'response ok' );
       }
       return response.text();
     } else {
       if (jsToolsConfig.noObjects) {
         const { statusText, status } = response;
         const statusString = `${status} ${statusText}`;
-        logGreen(null, null, `checkStatus:`.padEnd(20, ' ') + statusString );
+        logGreen(null, null, `checkStatus`.padEnd(20, ' ') + statusString );
       }
       const error = new Error('Response not ok');
       let result;
@@ -45,31 +45,7 @@ class FetchRequest extends AbstractFlowItem {
       return result;
     }
   }
-  
-  parseResponse(data) {
-    const {textData, isRecaptcha, error, error2} = data;
 
-    if (jsToolsConfig.noObjects) {
-      logGreen(null, null, `parseResponse:`.padEnd(20, ' ') + `(${textData ? textData.length : textData} characters long) ` + (error?'Has errors: '+(error || '' + error2 || ''):''));
-    } else {
-      logGreen(this, {textData});
-    }
-
-    if (error && !isRecaptcha) {
-      return Promise.reject(data);
-    } else if (isRecaptcha) {
-      return Promise.resolve(data);
-    }
-
-    let jsonData;
-    try {
-      jsonData = JSON.parse(textData);
-    } catch (jsonError) {
-      return Promise.reject({textData, jsonError});
-    }
-
-    return Promise.resolve({jsonData,textData});
-  }
 
   checkForRecaptcha(textData, response, error) {
     const isRecaptcha = (textData != null && textData.includes("g-recaptcha"));
@@ -96,22 +72,53 @@ class FetchRequest extends AbstractFlowItem {
     }
 
     if (jsToolsConfig.noObjects) {
-      logGreen(null, null, `checkForRecaptcha:`.padEnd(20, ' ') +  `${isRecaptcha ? 'is recaptcha' : 'not recaptcha'}` );
+      logGreen(null, null, `checkForRecaptcha`.padEnd(20, ' ') +  `${isRecaptcha ? 'is recaptcha' : 'not recaptcha'}` );
     }
 
     return result;
   }
 
-  onSuccess(data) {
-    const { jsonData } = data || {};
-
-    if (!jsToolsConfig.noObjects) {
-      logGreen(this, {jsonData});
+  
+  parseResponse(data) {
+    if (isObject(data)) {
+      let {textData, isRecaptcha, error, error2} = data;
+      if (jsToolsConfig.noObjects) {
+        logGreen(null, null, `parseResponse`.padEnd(20, ' ') + `(${textData ? textData.length : 'n/a'} characters long) ` + (error?'Has errors: '+(error || '' + error2 || ''):''));
+      } else {
+        logGreen(this, {textData});
+      }
+      if (error && !isRecaptcha) {
+        return Promise.reject(data);
+      } else if (isRecaptcha) {
+        return Promise.resolve(data);
+      }
     }
+
+    // data is stringified text
+
+    let jsonData;
+    try {
+      jsonData = JSON.parse(data);
+    } catch (jsonError) {
+      return Promise.reject({data, jsonError});
+    }
+
+    return Promise.resolve({jsonData,textData: data});
+  }
+
+
+  onSuccess(data) {
+    const { jsonData, isRecaptcha } = data || {};
 
     let skipNext = false;
     if (this.customOnSuccess) {
       skipNext = this.customOnSuccess(data || {});
+    } else {
+      if (jsToolsConfig.noObjects) {
+        logGreen(null, null, `onSuccess: (${isRecaptcha ? 'recaptcha found' : '...'})`);
+      } else {
+        logGreen(this, {jsonData});
+      }
     }
 
     if (!skipNext) {
@@ -120,14 +127,20 @@ class FetchRequest extends AbstractFlowItem {
   }
 
   onError(errorData) {
-    const { response } = errorData;
+    let { response, error, message } = errorData || {};
+    if (errorData instanceof Error) {
+      error = errorData;
+    }
 
     if (!response) {
-      if (!jsToolsConfig.noObjects) {
-        logGreen(this, {errorData});
-      }
       if (this.customOnError) {
         this.customOnError(errorData);
+      } else {
+        if (jsToolsConfig.noObjects) {
+          logWarn(null, null, 'onError:'.padEnd(20, ' ') + (error || 'n/a'));
+        } else {
+          logWarn(this, {errorData});
+        }  
       }
   
       return;
