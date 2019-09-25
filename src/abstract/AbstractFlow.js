@@ -122,10 +122,13 @@ function* createGenerator(flowObject) {
     if (extraTitle == null) {
       extraTitle = '';
     }
-    if (jsToolsConfig.noColor) {
-      console.log(`${getTime()}[Running] Flow-Item ${index+1}/${len}       ${title}${extraTitle} (${type})`);
-    } else {
-      console.log(`%c${getTime()}%c[Running] %cFlow-Item ${index+1}/${len}       ${title}${extraTitle} (${type})`, 'color: gray', 'color: green; font-weight: bold', 'font-weight: normal');
+
+    if (!flowItem.supressLogging) {
+      if (jsToolsConfig.noColor) {
+        console.log(`${getTime()}[Running] Flow-Item ${index+1}/${len}       ${title}${extraTitle} (${type})`);
+      } else {
+        console.log(`%c${getTime()}%c[Running] %cFlow-Item ${index+1}/${len}       ${title}${extraTitle} (${type})`, 'color: gray', 'color: green; font-weight: bold', 'font-weight: normal');
+      }
     }
 
     try {
