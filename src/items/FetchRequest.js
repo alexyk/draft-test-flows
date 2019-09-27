@@ -36,14 +36,12 @@ class FetchRequest extends AbstractFlowItem {
         logGreen(null, null, `checkStatus`.padEnd(20, ' ') + statusString );
       }
       const error = new Error('Response not ok');
-      let result;
 
       try {
-        result = response.text().then(textData => this.checkForRecaptcha(textData, response, error));
+        response.text().then(textData => this.checkForRecaptcha(textData, response, error));
       } catch (error2) {
-        result = Promise.reject({error,error2,response})
+        Promise.reject({error,error2,response})
       }
-      return result;
     }
   }
 
@@ -82,10 +80,13 @@ class FetchRequest extends AbstractFlowItem {
   
   parseResponse(data) {
     let jsonData;
+    let resultData = {};
 
     let {textData, isRecaptcha, error, error2} = data || {};
     if (isString(data)) {
       textData = data;
+    } else {
+      resultData = {...data}
     }
     if (jsToolsConfig.noObjects) {
       logGreen(null, null, `parseResponse`.padEnd(20, ' ') + `(${textData ? textData.length : 'n/a'} characters long) ` + (error || error2?'Has error: '+(error2 || error || ''):''));
@@ -94,16 +95,16 @@ class FetchRequest extends AbstractFlowItem {
     }
     try {
       jsonData = JSON.parse(textData);
-      Object.assign(data, {jsonData});
+      Object.assign(resultData, {jsonData});
     } catch (jsonError) {
-      Object.assign(data, {jsonError})
-      return Promise.reject(data);
+      Object.assign(resultData, {jsonError})
+      return Promise.reject(resultData);
     }
 
     if (error && !isRecaptcha) {
-      return Promise.reject(data);
+      return Promise.reject(resultData);
     } else {
-      return Promise.resolve(data);
+      return Promise.resolve(resultData);
     }
   }
 
