@@ -1,5 +1,6 @@
 import AbstractFlowItem from "../abstract/AbstractFlowItem";
 import config from "../config";
+import { log } from "js-tools";
 
 
 class ReduxPrintState extends AbstractFlowItem {
@@ -18,7 +19,7 @@ class ReduxPrintState extends AbstractFlowItem {
       data = reduxState;
     }
 
-    console.log(`[ReduxPrintState] Current redux state`, data);
+    log(`[ReduxPrintState] Current redux state`, data);
     flowObject.next();
     
     return this;

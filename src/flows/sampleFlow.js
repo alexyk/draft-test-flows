@@ -8,7 +8,7 @@ import ExecuteFunction from "../items/ExecuteFunction";
 import ReduxPrintState from "../items/ReduxPrintState";
 import ReduxDispatchAction from "../items/ReduxDispatchAction";
 import ConsoleAction from "../items/ConsoleAction";
-import { isArray } from "js-tools";
+import { isArray, log } from "js-tools";
 
 /**
  * Needed configs:
@@ -36,7 +36,7 @@ import { isArray } from "js-tools";
 
 let sampleFlow = function (selectedIndexes) {
   let flow = AbstractFlow('Sample Flow - with exec, redux and navigation flow items');
-  console.log('get params', config)
+  log('get params', config)
   let getParams = config.getParams(flow);
 
   // chain of commands

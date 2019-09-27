@@ -27,7 +27,7 @@ class PromiseResult extends AbstractFlowItem {
           const propName = cacheParamNames[index];
           const value = data[index];
 
-          // console.log(`    > [PromiseResult] Setting cache - ${propName}`, {propName, value});
+          // log(`    > [PromiseResult] Setting cache - ${propName}`, {propName, value});
           flowObject.write(propName, value);
         });
         flowObject.next();

@@ -1,22 +1,38 @@
 import moment from "moment";
 import config from "../config";
 import ConsoleAction from "../items/ConsoleAction";
-import { getObjectFromPath, getObjectClassName, logError, config as jsToolsConfig, isFunction } from "js-tools";
+import { getObjectFromPath, getObjectClassName, logError, config as jsToolsConfig, isFunction, log, isString } from "js-tools";
 
 
 /**
  * 
- * props:
+ *   Optional props (AbstractFlowItem)
+ *      waiting                 when set prevents next() from executing (set as props in AbstractFlowItem, used here)
+ *      hidden                  prevents logging making the flow item appear as hidden (set as props in AbstractFlowItem, used here)
+ *      if()                    a condition to check if in need to skip to the next flow item
+ * 
  *   Need to be defined
- *      createChain             - a function that returns a sequence of promise, func, request etc.
+ *      createChain()            a function that returns a sequence of promise, func, request etc.
  * 
  *   Auto generated:
- *      chain                   - a sequence of promise, func, request etc.
+ *      _aborted                flow is aborted
+ *      _generator              the generator used for progressing the flow
+ *      _index                  current flow item index
+ *      currentItem                   
+ *      chain                   a sequence of promise, func, request etc.
+ *      cache                   
+ * 
+ *  Methods
+ *      next()                  gives control to next flow item
+ *      abort()
+ *      continue()              sets waiting to false and calls next
+ *
+ *   -----------------------------------------------------------------------------------------------
  * 
  *   Other ideas:
- *      repo                    - an object of predefined functions (func) and data (data)
- *      promise, data           - a promise that sets 'data' in repo
- *      request                 - a server request
+ *      repo                    an object of predefined functions (func) and data (data)
+ *      promise, data           a promise that sets 'data' in repo
+ *      request                 a server request
  */
 
 function AbstractFlow(title) {
@@ -24,10 +40,6 @@ function AbstractFlow(title) {
     chain: [],
     cache: {}
   };
-
-  flowObject.getCurrentItem = function() {
-    return flowObject.chain[flowObject._index];
-  }
 
   flowObject.readAll = function() {
     return flowObject.cache;
@@ -45,8 +57,9 @@ function AbstractFlow(title) {
   flowObject.exec = () => {
     let chain = flowObject.createChain();
     flowObject.chain = chain;
-    flowObject._index = 0;
+    flowObject.currentItem = chain[0];
     flowObject._generator = createGenerator(flowObject);
+    flowObject._index = 0;
 
     // private case
     // if first item in flow is console.clear - execute it before printing any information here
@@ -57,37 +70,38 @@ function AbstractFlow(title) {
 
     // give console.clear a bit of time
     setTimeout( () => {
-      if (jsToolsConfig.noColor) {
-          console.log(`${getTime()} [Starting] -------------------- Flow Starting ---------------------`);
-      } else {
-        console.log(`%c${getTime()}%c[Starting] %c -------------------- Flow Starting ---------------------`, 'color: gray', 'color: yellow; font-weight: bold', 'font-weight: normal');
-      }
-      console.log(` `)
-      console.log(`                                   Test Flow "${title}"`);
-      console.log(` `)
+      log(`%c${getTime()}%c[Starting] %c -------------------- Flow Starting ---------------------`, 'color: gray', 'color: yellow; font-weight: bold', 'font-weight: normal');
+      log(` `);
+      log(`                                   Test Flow "${title}"`);
+      log(` `)
 
 
       // start first item
-      flowObject.next();
+      flowObject._generator.next();
     }, 10);
   }
 
   flowObject.next = () => {
-    setTimeout(() => {
-      let flowItem = flowObject.getCurrentItem();
-      let result;
+    if (getObjectFromPath(flowObject, 'currentItem.waiting') && flowObject.currentItem.if()) {
+      return flowObject;
+    }
+    setImmediate(() => {
       try {
-        result = flowObject._generator.next();
+        flowObject._generator.next();
       } catch (error) {
-        const details = getObjectClassName(flowItem);
+        const details = getObjectClassName(flowObject.currentItem);
         logError(`AbstractFlow::next()`, null, error, `While executing Flow item ${details}`);
-      }},
-      50
+      }}
     );
   }
 
-  flowObject.abort = () => {
-    flowObject._abort = true;
+  flowObject.abort = function (message) {
+    flowObject._aborted = message;
+  }
+
+  flowObject.continue = function () {
+    flowObject.currentItem.configure({waiting: false});
+    flowObject.next();
   }
 
   flowObject.createChain = () => {
@@ -100,58 +114,62 @@ function AbstractFlow(title) {
 
 function* createGenerator(flowObject) {
   const { chain } = flowObject;
-  let index = 0;
   let len = chain.length;
+  flowObject._index = 0;
 
-  while (index < len) {
-    flowObject._index = index;
+  while (flowObject._index < len) {
+    let index = flowObject._index;
     const flowItem = chain[index];
+    flowObject.currentItem = flowItem;
     const type = getObjectClassName(flowItem);
     let { title, extraTitle } = flowItem;
     if (isFunction(title)) {
       title = title();
     }
-    if (flowObject._abort) {
+    
+    const { _aborted } = flowObject;
+    const { hidden } = flowItem;
+
+    if (_aborted != null && _aborted != false) {
       title = chain[index > 0 ? index-1 : 0].title;
       if (isFunction(title)) {
         title = title();
       }
-      console.log(`${getTime()}[Aborting]  Flow aborted by '${title}'`);
+      log(`${getTime()}[Aborting]  Flow aborted by '${title}'` + (isString(_aborted) ? ` (${_aborted})` : ''));
       break;
     }
     if (extraTitle == null) {
       extraTitle = '';
     }
 
-    if (!flowItem.supressLogging) {
-      if (jsToolsConfig.noColor) {
-        console.log(`${getTime()}[Running] Flow-Item ${index+1}/${len}       ${title}${extraTitle} (${type})`);
-      } else {
-        console.log(`%c${getTime()}%c[Running] %cFlow-Item ${index+1}/${len}       ${title}${extraTitle} (${type})`, 'color: gray', 'color: green; font-weight: bold', 'font-weight: normal');
-      }
-    }
 
-    try {
-      yield flowItem.exec();
-    } catch (error) {
-      const itemName = getObjectClassName(flowItem);
-      if (jsToolsConfig.noObjects) {
-        logError(null, null, error.toString(), `(${itemName}::exec())`);
-      } else {
-        logError(`${itemName}::exec()`, null, error);
+    if (!hidden && flowItem.if()) {
+      log(`%c${getTime()}%c[Running]  %cFlow-Item ${index+1}/${len}       ${title}${extraTitle} (${type})`, 'color: gray', 'color: green; font-weight: bold', 'font-weight: normal');
+      try {
+        yield flowItem.exec();
+        flowObject._index++;
+      } catch (error) {
+        const itemName = getObjectClassName(flowItem);
+        if (jsToolsConfig.noObjects) {
+          logError(null, null, error.toString(), `(${itemName}::exec())`);
+        } else {
+          logError(`${itemName}::exec()`, null, error);
+        }
+        break;
       }
+    } else if (flowItem.waiting) {
+      yield;
+    } else {
+      log(`%c${getTime()}%c[Skipping] %cFlow-Item ${index+1}/${len}       ${title}${extraTitle} (${type})`, 'color: gray', 'color: green; font-weight: bold', 'font-weight: normal');
+      flowObject._index++;
+      flowObject.next();
     }
-    index++;
   }
 
-  console.log(' ')
-  console.log(' ')
-  if (jsToolsConfig.noColor) {
-    console.log(`${getTime()}[Ending]  -------------------- Flow Finished ---------------------`);
-  } else {
-    console.log(`%c${getTime()}%c[Ending] %c -------------------- Flow Finished ---------------------`, 'color: gray', 'color: orange; font-weight: bold', 'font-weight: normal');
-  }
-  console.log(' ')
+  log();
+  log();
+  log(`%c${getTime()}%c[Ending] %c -------------------- Flow Finished ---------------------`, 'color: gray', 'color: orange; font-weight: bold', 'font-weight: normal');
+  log();
 
 }
 

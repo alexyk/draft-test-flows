@@ -1,5 +1,6 @@
 import AbstractFlowItem from "../abstract/AbstractFlowItem";
 import { logGreen, logWarn, getConditionsByPath, config as jsToolsConfig, isFunction, logError, isObject } from "js-tools";
+import { isString } from "util";
 
 
 class FetchRequest extends AbstractFlowItem {
@@ -80,30 +81,30 @@ class FetchRequest extends AbstractFlowItem {
 
   
   parseResponse(data) {
-    if (isObject(data)) {
-      let {textData, isRecaptcha, error, error2} = data;
-      if (jsToolsConfig.noObjects) {
-        logGreen(null, null, `parseResponse`.padEnd(20, ' ') + `(${textData ? textData.length : 'n/a'} characters long) ` + (error?'Has errors: '+(error || '' + error2 || ''):''));
-      } else {
-        logGreen(this, {textData});
-      }
-      if (error && !isRecaptcha) {
-        return Promise.reject(data);
-      } else if (isRecaptcha) {
-        return Promise.resolve(data);
-      }
-    }
-
-    // data is stringified text
-
     let jsonData;
+
+    let {textData, isRecaptcha, error, error2} = data || {};
+    if (isString(data)) {
+      textData = data;
+    }
+    if (jsToolsConfig.noObjects) {
+      logGreen(null, null, `parseResponse`.padEnd(20, ' ') + `(${textData ? textData.length : 'n/a'} characters long) ` + (error || error2?'Has error: '+(error2 || error || ''):''));
+    } else {
+      logGreen(this, {textData});
+    }
     try {
-      jsonData = JSON.parse(data);
+      jsonData = JSON.parse(textData);
+      Object.assign(data, {jsonData});
     } catch (jsonError) {
-      return Promise.reject({data, jsonError});
+      Object.assign(data, {jsonError})
+      return Promise.reject(data);
     }
 
-    return Promise.resolve({jsonData,textData: data});
+    if (error && !isRecaptcha) {
+      return Promise.reject(data);
+    } else {
+      return Promise.resolve(data);
+    }
   }
 
 
@@ -163,6 +164,13 @@ class FetchRequest extends AbstractFlowItem {
     }
     if (isFunction(dataConfig)) {
       dataConfig = dataConfig();
+    }
+    if (isObject(dataConfig) && !dataConfig.hasOwnProperty('headers')) {
+      dataConfig = {
+        headers: this.flowObject.read('headers'),
+        method: "POST",
+        body: JSON.stringify(dataConfig)
+      }
     }
 
     if (jsToolsConfig.noObjects) {
