@@ -58,8 +58,8 @@ function AbstractFlow(title) {
     let chain = flowObject.createChain();
     flowObject.chain = chain;
     flowObject.currentItem = chain[0];
-    flowObject._generator = createGenerator(flowObject);
     flowObject._index = 0;
+    flowObject._generator = createGenerator(flowObject);
 
     // private case
     // if first item in flow is console.clear - execute it before printing any information here
@@ -114,10 +114,8 @@ function AbstractFlow(title) {
 
 function* createGenerator(flowObject) {
   const { chain } = flowObject;
-  let len = chain.length;
-  flowObject._index = 0;
 
-  while (flowObject._index < len) {
+  while (flowObject._index < chain.length) {
     let index = flowObject._index;
     const flowItem = chain[index];
     flowObject.currentItem = flowItem;
@@ -144,7 +142,7 @@ function* createGenerator(flowObject) {
 
 
     if (!hidden && flowItem.if()) {
-      log(`%c${getTime()}%c[Running]  %cFlow-Item ${index+1}/${len}       ${title}${extraTitle} (${type})`, 'color: gray', 'color: green; font-weight: bold', 'font-weight: normal');
+      log(`%c${getTime()}%c[Running]  %cFlow-Item ${index+1}/${chain.length}       ${title}${extraTitle} (${type})`, 'color: gray', 'color: green; font-weight: bold', 'font-weight: normal');
       try {
         yield flowItem.exec();
         flowObject._index++;
@@ -155,14 +153,12 @@ function* createGenerator(flowObject) {
         } else {
           logError(`${itemName}::exec()`, null, error);
         }
-        break;
       }
     } else if (flowItem.waiting) {
       yield;
-    } else {
-      log(`%c${getTime()}%c[Skipping] %cFlow-Item ${index+1}/${len}       ${title}${extraTitle} (${type})`, 'color: gray', 'color: green; font-weight: bold', 'font-weight: normal');
+    } else if (!flowItem.if()) {
+      log(`%c${getTime()}%c[Skipping] %cFlow-Item ${index+1}/${chain.length}       ${title}${extraTitle} (${type})`, 'color: gray', 'color: green; font-weight: bold', 'font-weight: normal');
       flowObject._index++;
-      flowObject.next();
     }
   }
 
@@ -170,7 +166,6 @@ function* createGenerator(flowObject) {
   log();
   log(`%c${getTime()}%c[Ending] %c -------------------- Flow Finished ---------------------`, 'color: gray', 'color: orange; font-weight: bold', 'font-weight: normal');
   log();
-
 }
 
 function getTime() {

@@ -1,6 +1,5 @@
 import AbstractFlowItem from "../abstract/AbstractFlowItem";
-import { logGreen, logWarn, getConditionsByPath, config as jsToolsConfig, isFunction, logError, isObject } from "js-tools";
-import { isString } from "util";
+import { logGreen, logWarn, getConditionsByPath, config as jsToolsConfig, isFunction, logError, isObject, isString } from "js-tools";
 
 
 class FetchRequest extends AbstractFlowItem {
@@ -21,11 +20,11 @@ class FetchRequest extends AbstractFlowItem {
   }
 
   checkStatus(response) {
-    if (!jsToolsConfig.noObjects) {
+    if (!jsToolsConfig.noObjects && !this.silent) {
       logGreen(this, {response});
     }
     if (response.ok) {
-      if (jsToolsConfig.noObjects) {
+      if (jsToolsConfig.noObjects && !this.silent) {
         logGreen(null, null, `checkStatus`.padEnd(20, ' ') + 'response ok' );
       }
       return response.text();
@@ -33,7 +32,7 @@ class FetchRequest extends AbstractFlowItem {
       if (jsToolsConfig.noObjects) {
         const { statusText, status } = response;
         const statusString = `${status} ${statusText}`;
-        logGreen(null, null, `checkStatus`.padEnd(20, ' ') + statusString );
+        (!this.silent) && logGreen(null, null, `checkStatus`.padEnd(20, ' ') + statusString );
       }
       const error = new Error('Response not ok');
 
@@ -49,7 +48,7 @@ class FetchRequest extends AbstractFlowItem {
   checkForRecaptcha(textData, response, error) {
     const isRecaptcha = (textData != null && textData.includes("g-recaptcha"));
 
-    if (!jsToolsConfig.noObjects) {
+    if (!jsToolsConfig.noObjects && !this.silent) {
       logGreen(this,
         {
           isRecaptcha,
@@ -70,7 +69,7 @@ class FetchRequest extends AbstractFlowItem {
       result = {error2: new Error('Response not ok - not recaptcha'), response, error, textData};
     }
 
-    if (jsToolsConfig.noObjects) {
+    if (jsToolsConfig.noObjects && !this.silent) {
       logGreen(null, null, `checkForRecaptcha`.padEnd(20, ' ') +  `${isRecaptcha ? 'is recaptcha' : 'not recaptcha'}` );
     }
 
@@ -88,10 +87,12 @@ class FetchRequest extends AbstractFlowItem {
     } else {
       resultData = {...data}
     }
-    if (jsToolsConfig.noObjects) {
-      logGreen(null, null, `parseResponse`.padEnd(20, ' ') + `(${textData ? textData.length : 'n/a'} characters long) ` + (error || error2?'Has error: '+(error2 || error || ''):''));
-    } else {
-      logGreen(this, {textData});
+    if (!this.silent) {
+      if (jsToolsConfig.noObjects) {
+        logGreen(null, null, `parseResponse`.padEnd(20, ' ') + `(${textData ? textData.length : 'n/a'} characters long) ` + (error || error2?'Has error: '+(error2 || error || ''):''));
+      } else {
+        logGreen(this, {textData});
+      }
     }
     try {
       jsonData = JSON.parse(textData);
@@ -116,10 +117,12 @@ class FetchRequest extends AbstractFlowItem {
     if (this.customOnSuccess) {
       skipNext = this.customOnSuccess(data || {});
     } else {
-      if (jsToolsConfig.noObjects) {
-        logGreen(null, null, `onSuccess: (${isRecaptcha ? 'recaptcha found' : '...'})`);
-      } else {
-        logGreen(this, {jsonData});
+      if (!this.silent) {
+        if (jsToolsConfig.noObjects) {
+          logGreen(null, null, `onSuccess: (${isRecaptcha ? 'recaptcha found' : '...'})`);
+        } else {
+          logGreen(this, {jsonData});
+        }
       }
     }
 
@@ -138,11 +141,13 @@ class FetchRequest extends AbstractFlowItem {
       if (this.customOnError) {
         this.customOnError(errorData);
       } else {
-        if (jsToolsConfig.noObjects) {
-          logWarn(null, null, 'onError:'.padEnd(20, ' ') + (error || 'n/a'));
-        } else {
-          logWarn(this, {errorData});
-        }  
+        if (!this.silent) {
+          if (jsToolsConfig.noObjects) {
+            logWarn(null, null, 'onError:'.padEnd(20, ' ') + (error || 'n/a'));
+          } else {
+            logWarn(this, {errorData});
+          }
+        }
       }
   
       return;
@@ -172,12 +177,17 @@ class FetchRequest extends AbstractFlowItem {
         method: "POST",
         body: JSON.stringify(dataConfig)
       }
+    } else if (dataConfig == null) {
+      dataConfig = {method: "GET"};
     }
 
-    if (jsToolsConfig.noObjects) {
-      logGreen(null, null, 'Request URL'.padEnd(19, ' '), `${url}`);
-    } else {
-      logGreen(this, {dataConfig}, 'Request', `${url}`);
+
+    if (!this.silent) {
+      if (jsToolsConfig.noObjects) {
+        logGreen(null, null, 'Request URL'.padEnd(19, ' '), `${url}`);
+      } else {
+        logGreen(this, {dataConfig}, 'Request', `${url}`);
+      }
     }
     
     fetch(url, dataConfig)
